@@ -16,6 +16,11 @@ app.use(morgan('dev')); // For logging requests
 // Use routes from the routes file
 app.use('/api', routes);
 
+app.get('/api',(req,res)=>{
+  res.status(200).json({message:"jai shree ram"})
+})
+
+
 // Basic error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
