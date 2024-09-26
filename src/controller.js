@@ -115,8 +115,22 @@ export const extractCaptcha = async (req, res) => {
 
 // Function to launch browser
 const launchBrowser = async (headless = true) => {
+  let executablePath;
+
+  // Check the operating system
+  if (process.platform === "win32") {
+      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  } else if (process.platform === "linux") {
+      executablePath = "/usr/bin/google-chrome"; // or '/usr/bin/chromium-browser' for Chromium
+  } else if (process.platform === "darwin") { // macOS
+      executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  } else {
+      throw new Error("Unsupported operating system");
+  }
+
   return puppeteer.launch({
     headless,
+    executablePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
