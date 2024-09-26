@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path'; // Import both dirname and join from 'path'
 import dotenv from 'dotenv'; // Assuming you're using dotenv to load environment variables
 import AWS from 'aws-sdk'; // Assuming you're using dotenv to load environment variables
-// Function to launch browser
 import { exec } from 'child_process';
+import async from 'async';
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,  // Set your AWS access key
@@ -33,9 +33,22 @@ process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
 // Controller for GET request
 export const getData = (req, res) => {
   res.json({ message: 'GET request successful!' });
-};
+};``
 
-// Controller for creating item
+// Create a queue with a concurrency of 10
+const queue = async.queue(async (consignmentNumber) => {
+  try {
+    const trackingInfo = await mainWorkflow(consignmentNumber, false);
+    return trackingInfo; // Return the tracking info directly
+  } catch (error) {
+    console.error('Error in queue processing:', error);
+    throw error; // Throw error so it can be handled in the calling function
+  }
+}, 10); // Limit concurrent requests to 10
+
+
+
+// Controller for tracking consignment
 export const trackConsignment = async (req, res) => {
   const { consignment_number } = req.body;
 
@@ -45,13 +58,24 @@ export const trackConsignment = async (req, res) => {
   }
 
   try {
-    const trackingInfo = await mainWorkflow(consignment_number, false);
-    res.json({ message: 'Tracking info retrieved', data: trackingInfo });
+    // Use the queue to handle the request
+    queue.push(consignment_number, async (err, trackingInfo) => {
+      if (err) {
+        console.error('Error in trackConsignment:', err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      // If trackingInfo is successfully retrieved
+      res.json({ message: 'Tracking info retrieved', data: trackingInfo });
+    });
   } catch (error) {
-    console.error('Error in trackConsignment:', error);
+    // Catch any unexpected errors in the controller logic
+    console.error('Error in trackConsignment controller:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 
 // Function to extract text from captcha using Google Vision API
