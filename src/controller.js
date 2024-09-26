@@ -282,7 +282,7 @@ const submitForm = async (page) => {
 const retrieveTrackingInfo = async (page, consignmentNumber) => {
   try {
     // Wait for the tracking status to be visible
-    await page.waitForSelector('#ctl00_PlaceHolderMain_ucNewLegacyControl_lblMailArticleCurrentStatusOER', { timeout: 60000 });
+    await page.waitForSelector('#ctl00_PlaceHolderMain_ucNewLegacyControl_lblMailArticleCurrentStatusOER', { timeout: 100000 });
 
     // Get the current status text
     const trackingStatus = await page.$eval('#ctl00_PlaceHolderMain_ucNewLegacyControl_lblMailArticleCurrentStatusOER', el => el.textContent.trim());
