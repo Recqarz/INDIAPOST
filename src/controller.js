@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path'; // Import both dirname and join from 'path'
 import dotenv from 'dotenv'; // Assuming you're using dotenv to load environment variables
 import AWS from 'aws-sdk'; // Assuming you're using dotenv to load environment variables
+// Function to launch browser
+import { exec } from 'child_process';
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,  // Set your AWS access key
@@ -113,19 +115,27 @@ export const extractCaptcha = async (req, res) => {
 };
 
 
-// Function to launch browser
 const launchBrowser = async (headless = true) => {
   let executablePath;
 
   // Check the operating system
   if (process.platform === "win32") {
-      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+    executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
   } else if (process.platform === "linux") {
-      executablePath = "/usr/bin/google-chrome"; // or '/usr/bin/chromium-browser' for Chromium
-  } else if (process.platform === "darwin") { // macOS
-      executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    executablePath = "/usr/bin/google-chrome"; // or '/usr/bin/chromium-browser' for Chromium
+
+    // Start Xvfb
+    exec('Xvfb :99 -screen 0 1280x720x24 &', (err) => {
+      if (err) {
+        console.error('Error starting Xvfb:', err);
+      }
+    });
+
+    process.env.DISPLAY = process.env.DISPLAY || ':99'; // Set the DISPLAY environment variable from .env file or default to ':99'
+  } else if (process.platform === "darwin") {
+    executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
   } else {
-      throw new Error("Unsupported operating system");
+    throw new Error("Unsupported operating system");
   }
 
   return puppeteer.launch({
