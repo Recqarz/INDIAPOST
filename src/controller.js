@@ -281,7 +281,7 @@ const submitForm = async (page) => {
 // Function to retrieve tracking info
 const retrieveTrackingInfo = async (page, consignmentNumber) => {
   try {
-    // Wait for the tracking status to be visible
+    // Wait for the current status to be visible or a timeout
     await page.waitForSelector('#ctl00_PlaceHolderMain_ucNewLegacyControl_lblMailArticleCurrentStatusOER', { timeout: 100000 });
 
     // Get the current status text
@@ -290,7 +290,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     // Get the full HTML content of the tracking div
     let trackingDivHtml = await page.$eval('#ctl00_PlaceHolderMain_ucNewLegacyControl_upnlTrackConsignment', el => el.outerHTML);
 
-    // Remove only unnecessary characters like \n, \t, and \r
+    // Remove unnecessary characters like \n, \t, and \r
     trackingDivHtml = trackingDivHtml.replace(/[\n\t\r]+/g, '');
 
     // Create a PDF of the current page (Ctrl + P equivalent) as a buffer
@@ -311,7 +311,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     const uploadResult = await s3.upload(s3Params).promise();
     console.log('PDF uploaded to S3:', uploadResult.Location);
 
-    // Return an object with consignment number, tracking status, full HTML content, and S3 URL
+    // Return an object with consignment number, tracking status, full HTML content, event details, and S3 URL
     return {
       "Consignment Number": consignmentNumber,
       "Current Status": trackingStatus,
@@ -321,6 +321,28 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
 
   } catch (error) {
     console.error('Error retrieving tracking info:', error.message);
+      // Check if the consignment number is invalid
+      const errorSelector1 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_lblValidTrackingError';
+      const errorSelector2 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_ucDisplayBlock_DisplayError';
+  
+      const errorMessage1 = await page.$eval(errorSelector1, el => el.textContent.trim(), { defaultValue: '' });
+      const errorMessage2 = await page.$eval(errorSelector2, el => el.textContent.trim(), { defaultValue: '' });
+  
+      if (errorMessage1 && errorMessage1.includes('Consignment number is not valid')) {
+        console.log(`Invalid Consignment Number: ${consignmentNumber}`);
+        return [{
+          "Consignment Number": consignmentNumber,
+          "Current Status": "Invalid Consignment number",
+        }];
+      }
+  
+      if (errorMessage2 && errorMessage2.includes("Please try after sometime")) {
+        console.log(`Unable to get Consignment Details, Please try after sometime: ${consignmentNumber}`);
+        return [{
+          "Consignment Number": consignmentNumber,
+          "Current Status": "Unable to get Consignment Details, Please try after sometime",
+        }];
+      }
 
     // Return a structured object in case of error
     return {
@@ -330,6 +352,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     };
   }
 };
+
 
 
 // Main workflow function
@@ -353,7 +376,7 @@ const mainWorkflow = async (consignmentNumber, headless = true) => {
     const captchaSuccess = await handleCaptchaAndFillForm(page);
     if (!captchaSuccess) {
       await browser.close();
-      return 'Captcha ID not found or unable to extract text.';
+      return 'Unable to extract text.';
     }
 
     // Submit form after filling captcha
