@@ -33,7 +33,7 @@ process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
 // Controller for GET request
 export const getData = (req, res) => {
   res.json({ message: 'GET request successful!' });
-};``
+}; ``
 
 // Create a queue with a concurrency of 10
 const queue = async.queue(async (consignmentNumber) => {
@@ -321,35 +321,71 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
 
   } catch (error) {
     console.error('Error retrieving tracking info:', error.message);
-      // Check if the consignment number is invalid
-      const errorSelector1 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_lblValidTrackingError';
-      const errorSelector2 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_ucDisplayBlock_DisplayError';
-  
-      const errorMessage1 = await page.$eval(errorSelector1, el => el.textContent.trim(), { defaultValue: '' });
-      const errorMessage2 = await page.$eval(errorSelector2, el => el.textContent.trim(), { defaultValue: '' });
-  
-      if (errorMessage1 && errorMessage1.includes('Consignment number is not valid')) {
-        console.log(`Invalid Consignment Number: ${consignmentNumber}`);
-        return [{
-          "Consignment Number": consignmentNumber,
-          "Current Status": "Invalid Consignment number",
-        }];
-      }
-  
-      if (errorMessage2 && errorMessage2.includes("Please try after sometime")) {
-        console.log(`Unable to get Consignment Details, Please try after sometime: ${consignmentNumber}`);
-        return [{
-          "Consignment Number": consignmentNumber,
-          "Current Status": "Unable to get Consignment Details, Please try after sometime",
-        }];
-      }
+    // Check if the consignment number is invalid
 
-    // Return a structured object in case of error
-    return {
-      "Consignment Number": consignmentNumber,
-      "Current Status": "Tracking info not found or captcha failed.",
-      "HTML Content": null
-    };
+    let errorMessages = [];
+
+    // Check for "Consignment details not found"
+    try {
+      const errorSelector3 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_lblSvcErrMsgHomepg';
+      const errorElement3 = await page.$(errorSelector3);
+      if (errorElement3) {
+        const errorMessage3 = await page.$eval(errorSelector3, el => el.textContent.trim());
+        if (errorMessage3.includes("Consignment details not found.")) {
+          errorMessages.push({
+            "Consignment Number": consignmentNumber,
+            "Current Status": "Consignment details not found.",
+          });
+        }
+      }
+    } catch (innerError) {
+      console.error('Error checking consignment details not found:', innerError.message);
+    }
+
+    // Check if the consignment number is invalid
+    try {
+      const errorSelector1 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_lblValidTrackingError';
+      const errorElement1 = await page.$(errorSelector1);
+      if (errorElement1) {
+        const errorMessage1 = await page.$eval(errorSelector1, el => el.textContent.trim());
+        if (errorMessage1.includes('Consignment number is not valid')) {
+          errorMessages.push({
+            "Consignment Number": consignmentNumber,
+            "Current Status": "Invalid Consignment number",
+          });
+        }
+      }
+    } catch (innerError) {
+      console.error('Error checking invalid consignment number:', innerError.message);
+    }
+
+    // Check for "Please try after sometime" error
+    try {
+      const errorSelector2 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_ucDisplayBlock_DisplayError';
+      const errorElement2 = await page.$(errorSelector2);
+      if (errorElement2) {
+        const errorMessage2 = await page.$eval(errorSelector2, el => el.textContent.trim());
+        if (errorMessage2.includes("Please try after sometime")) {
+          errorMessages.push({
+            "Consignment Number": consignmentNumber,
+            "Current Status": "Unable to get Consignment Details, Please try after sometime",
+          });
+        }
+      }
+    } catch (innerError) {
+      console.error('Error checking temporary unavailability:', innerError.message);
+    }
+
+    // If we found any error messages, return them, otherwise return a default error
+    if (errorMessages.length > 0) {
+      return errorMessages;
+    } else {
+      return [{
+        "Consignment Number": consignmentNumber,
+        "Current Status": "Tracking info not found or captcha failed.",
+        "HTML Content": null
+      }];
+    }
   }
 };
 
