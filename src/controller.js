@@ -35,7 +35,7 @@ export const getData = (req, res) => {
   res.json({ message: 'GET request successful!' });
 }; ``
 
-// Create a queue with a concurrency of 10
+// Create a queue with a concurrency of 20
 const queue = async.queue(async (consignmentNumber) => {
   try {
     const trackingInfo = await mainWorkflow(consignmentNumber, false);
@@ -44,7 +44,7 @@ const queue = async.queue(async (consignmentNumber) => {
     console.error('Error in queue processing:', error);
     throw error; // Throw error so it can be handled in the calling function
   }
-}, 10); // Limit concurrent requests to 10
+}, 20); // Limit concurrent requests to 20
 
 
 
@@ -53,8 +53,71 @@ export const trackConsignment = async (req, res) => {
   const { consignment_number } = req.body;
 
   if (!consignment_number) {
-    console.error('Missing consignment number');
-    return res.status(400).json({ error: 'Missing consignment number' });
+    // console.error('Missing consignment number');
+    return res.status(400).json({
+      "Consignment Number": consignment_number,
+      "Current Status": "Invalid consignment number",
+      "HTML Content": '',
+      "PDF URL": ''
+    });
+  }
+
+  // Validate consignment_number length
+  if (consignment_number.length !== 13) {
+    // console.error('Invalid consignment number length');
+    return res.status(400).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  // Validate that the first two and last two characters are alphabetic
+  const firstTwoChars = consignment_number.slice(0, 2);
+  const lastTwoChars = consignment_number.slice(-2);
+  const middleChars = consignment_number.slice(2, 11);
+
+  const alphabetRegex = /^[A-Za-z]+$/;
+  const numericRegex = /^[0-9]+$/;
+
+  if (!alphabetRegex.test(firstTwoChars)) {
+    // console.error('Invalid format: First two characters must be alphabetic');
+    return res.status(400).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  if (!alphabetRegex.test(lastTwoChars)) {
+    // console.error('Invalid format: Last two characters must be alphabetic');
+    return res.status(400).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  // Validate that the middle characters (3rd to 11th) are numeric
+  if (!numericRegex.test(middleChars)) {
+    // console.error('Invalid format: Middle characters must be numeric');
+    return res.status(400).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
   }
 
   try {
@@ -190,7 +253,7 @@ const processOutputBasedOnQuery = (text, query) => {
       numbers = [...numbers[0]];  // Split the string into individual digits
     }
 
-    console.log("All numbers extracted:", numbers);
+    // console.log("All numbers extracted:", numbers);
 
     // Mapping for number position (e.g., 'First', 'Second', 'Third', etc.)
     const numberWords = { 'First': 0, 'Second': 1, 'Third': 2, 'Fourth': 3, 'Fifth': 4, 'Sixth': 5 };
@@ -201,7 +264,7 @@ const processOutputBasedOnQuery = (text, query) => {
     const numberIndex = numberWords[positionWord];
 
     if (numberIndex !== undefined && numbers.length > numberIndex) {
-      console.log(`${positionWord} number:`, numbers[numberIndex]);
+      // console.log(`${positionWord} number:`, numbers[numberIndex]);
       coutput = numbers[numberIndex];
     } else {
       console.log(`${positionWord} number: Not found`);
@@ -211,7 +274,7 @@ const processOutputBasedOnQuery = (text, query) => {
       // Remove non-mathematical characters and evaluate the expression
       const sanitizedText = text.replace(/[^\d\+\-\*/]/g, '');
       const result = eval(sanitizedText);
-      console.log("Evaluated result:", result);
+      // console.log("Evaluated result:", result);
       coutput = result;
     } catch (error) {
       console.log("Error evaluating expression:", error.message);
@@ -235,19 +298,19 @@ const handleCaptchaAndFillForm = async (page) => {
     const captchaElement = await page.$(selector);
     if (captchaElement) {
       const captchaUrl = await page.evaluate(el => el.src, captchaElement);
-      console.log('Captcha URL:', captchaUrl);
+      // console.log('Captcha URL:', captchaUrl);
 
       // Make API call to extract captcha text
       try {
         const response = await axios.post(`${process.env.BACKEND_URL}/extractCaptchaText`, { captchaUrl });
         if (response.data.success && response.data.captchaText) {
           const captchaText = response.data.captchaText;
-          console.log('Extracted Captcha Text from API:', captchaText);
+          // console.log('Extracted Captcha Text from API:', captchaText);
 
           // Get the query type from the webpage
           const queryElement = await page.$('#ctl00_PlaceHolderMain_ucNewLegacyControl_ucCaptcha1_lblCaptcha');
           const queryText = await page.evaluate(el => el.textContent, queryElement);
-          console.log('Query:', queryText);
+          // console.log('Query:', queryText);
 
           // Process the captcha text based on the query
           const processedCaptchaText = processOutputBasedOnQuery(captchaText, queryText);
@@ -275,7 +338,7 @@ const handleCaptchaAndFillForm = async (page) => {
 const submitForm = async (page) => {
   await page.click('#ctl00_PlaceHolderMain_ucNewLegacyControl_btnSearch');
   await page.waitForSelector('div.col-xs-12.col-md-12');  // Adjust selector based on the result page
-  console.log('Form submitted and result page loaded');
+  // console.log('Form submitted and result page loaded');
 };
 
 // Function to retrieve tracking info
@@ -309,7 +372,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     };
 
     const uploadResult = await s3.upload(s3Params).promise();
-    console.log('PDF uploaded to S3:', uploadResult.Location);
+    // console.log('PDF uploaded to S3:', uploadResult.Location);
 
     // Return an object with consignment number, tracking status, full HTML content, event details, and S3 URL
     return {
@@ -340,23 +403,6 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
       }
     } catch (innerError) {
       console.error('Error checking consignment details not found:', innerError.message);
-    }
-
-    // Check if the consignment number is invalid
-    try {
-      const errorSelector1 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_lblValidTrackingError';
-      const errorElement1 = await page.$(errorSelector1);
-      if (errorElement1) {
-        const errorMessage1 = await page.$eval(errorSelector1, el => el.textContent.trim());
-        if (errorMessage1.includes('Consignment number is not valid')) {
-          errorMessages.push({
-            "Consignment Number": consignmentNumber,
-            "Current Status": "Invalid Consignment number",
-          });
-        }
-      }
-    } catch (innerError) {
-      console.error('Error checking invalid consignment number:', innerError.message);
     }
 
     // Check for "Please try after sometime" error
