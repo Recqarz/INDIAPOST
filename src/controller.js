@@ -56,7 +56,7 @@ export const trackConsignment = async (req, res) => {
     // console.error('Missing consignment number');
     return res.status(400).json({
       "Consignment Number": consignment_number,
-      "Current Status": "Invalid consignment number",
+      "Current Status": "Missing consignment number",
       "HTML Content": '',
       "PDF URL": ''
     });
@@ -65,7 +65,7 @@ export const trackConsignment = async (req, res) => {
   // Validate consignment_number length
   if (consignment_number.length !== 13) {
     // console.error('Invalid consignment number length');
-    return res.status(400).json({
+    return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
         "Current Status": "Invalid consignment number",
@@ -85,7 +85,7 @@ export const trackConsignment = async (req, res) => {
 
   if (!alphabetRegex.test(firstTwoChars)) {
     // console.error('Invalid format: First two characters must be alphabetic');
-    return res.status(400).json({
+    return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
         "Current Status": "Invalid consignment number",
@@ -97,7 +97,7 @@ export const trackConsignment = async (req, res) => {
 
   if (!alphabetRegex.test(lastTwoChars)) {
     // console.error('Invalid format: Last two characters must be alphabetic');
-    return res.status(400).json({
+    return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
         "Current Status": "Invalid consignment number",
@@ -110,7 +110,7 @@ export const trackConsignment = async (req, res) => {
   // Validate that the middle characters (3rd to 11th) are numeric
   if (!numericRegex.test(middleChars)) {
     // console.error('Invalid format: Middle characters must be numeric');
-    return res.status(400).json({
+    return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
         "Current Status": "Invalid consignment number",
