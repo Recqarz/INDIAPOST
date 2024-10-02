@@ -68,7 +68,7 @@ export const trackConsignment = async (req, res) => {
     return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
-        "Current Status": "Invalid consignment number",
+        "Current Status": "Current Status : Invalid consignment number",
         "HTML Content": '',
         "PDF URL": ''
       }
@@ -88,7 +88,7 @@ export const trackConsignment = async (req, res) => {
     return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
-        "Current Status": "Invalid consignment number",
+        "Current Status": "Current Status : Invalid consignment number",
         "HTML Content": '',
         "PDF URL": ''
       }
@@ -100,7 +100,7 @@ export const trackConsignment = async (req, res) => {
     return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
-        "Current Status": "Invalid consignment number",
+        "Current Status": "Current Status : Invalid consignment number",
         "HTML Content": '',
         "PDF URL": ''
       }
@@ -113,7 +113,7 @@ export const trackConsignment = async (req, res) => {
     return res.status(200).json({
       data: {
         "Consignment Number": consignment_number,
-        "Current Status": "Invalid consignment number",
+        "Current Status": "Current Status : Invalid consignment number",
         "HTML Content": '',
         "PDF URL": ''
       }
@@ -280,7 +280,7 @@ const processOutputBasedOnQuery = (text, query) => {
       console.log("Error evaluating expression:", error.message);
     }
   } else {
-    console.log("Extracted Text:", text);
+    // console.log("Extracted Text:", text);
     coutput = text;
   }
 
@@ -385,8 +385,12 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
   } catch (error) {
     console.error('Error retrieving tracking info:', error.message);
     // Check if the consignment number is invalid
-
-    let errorMessages = [];
+    let errorData = {
+      "Consignment Number": consignmentNumber,
+      "Current Status": "Current Status : Initiated", // Default status for errors
+      "HTML Content": '',
+      "PDF URL": ''
+    };
 
     // Check for "Consignment details not found"
     try {
@@ -395,43 +399,20 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
       if (errorElement3) {
         const errorMessage3 = await page.$eval(errorSelector3, el => el.textContent.trim());
         if (errorMessage3.includes("Consignment details not found.")) {
-          errorMessages.push({
+          errorData = {
             "Consignment Number": consignmentNumber,
-            "Current Status": "Consignment details not found.",
-          });
+            "Current Status": "Current Status : Consignment details not found.",
+            "HTML Content": '',
+            "PDF URL": ''
+          };
         }
       }
     } catch (innerError) {
       console.error('Error checking consignment details not found:', innerError.message);
     }
 
-    // Check for "Please try after sometime" error
-    try {
-      const errorSelector2 = '#ctl00_PlaceHolderMain_ucNewLegacyControl_ucDisplayBlock_DisplayError';
-      const errorElement2 = await page.$(errorSelector2);
-      if (errorElement2) {
-        const errorMessage2 = await page.$eval(errorSelector2, el => el.textContent.trim());
-        if (errorMessage2.includes("Please try after sometime")) {
-          errorMessages.push({
-            "Consignment Number": consignmentNumber,
-            "Current Status": "Unable to get Consignment Details, Please try after sometime",
-          });
-        }
-      }
-    } catch (innerError) {
-      console.error('Error checking temporary unavailability:', innerError.message);
-    }
-
-    // If we found any error messages, return them, otherwise return a default error
-    if (errorMessages.length > 0) {
-      return errorMessages;
-    } else {
-      return [{
-        "Consignment Number": consignmentNumber,
-        "Current Status": "Tracking info not found or captcha failed.",
-        "HTML Content": null
-      }];
-    }
+    // Return the error data in the desired format
+    return errorData ;
   }
 };
 
