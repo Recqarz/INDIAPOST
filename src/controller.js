@@ -36,7 +36,7 @@ export const getData = (req, res) => {
 }; ``
 
 // Create a queue with a concurrency of 20
-const queue = async.queue(async (consignmentNumber) => {
+const queue1 = async.queue(async (consignmentNumber) => {
   try {
     const trackingInfo = await mainWorkflow(consignmentNumber, false);
     return trackingInfo; // Return the tracking info directly
@@ -45,6 +45,18 @@ const queue = async.queue(async (consignmentNumber) => {
     throw error; // Throw error so it can be handled in the calling function
   }
 }, 20); // Limit concurrent requests to 20
+
+
+// Create a queue with a concurrency of 20
+const queue2 = async.queue(async (consignmentNumber) => {
+  try {
+    const trackingInfo = await mainWorkflow(consignmentNumber, false);
+    return trackingInfo; // Return the tracking info directly
+  } catch (error) {
+    console.error('Error in queue processing:', error);
+    throw error; // Throw error so it can be handled in the calling function
+  }
+}, 5); // Limit concurrent requests to 20
 
 
 
@@ -122,7 +134,98 @@ export const trackConsignment = async (req, res) => {
 
   try {
     // Use the queue to handle the request
-    queue.push(consignment_number, async (err, trackingInfo) => {
+    queue1.push(consignment_number, async (err, trackingInfo) => {
+      if (err) {
+        console.error('Error in trackConsignment:', err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      // If trackingInfo is successfully retrieved
+      res.json({ message: 'Tracking info retrieved', data: trackingInfo });
+    });
+  } catch (error) {
+    // Catch any unexpected errors in the controller logic
+    console.error('Error in trackConsignment controller:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// Controller for tracking consignment
+export const trackConsignmentForInitiatedData = async (req, res) => {
+  const { consignment_number } = req.body;
+
+  if (!consignment_number) {
+    // console.error('Missing consignment number');
+    return res.status(400).json({
+      "Consignment Number": consignment_number,
+      "Current Status": "Missing consignment number",
+      "HTML Content": '',
+      "PDF URL": ''
+    });
+  }
+
+  // Validate consignment_number length
+  if (consignment_number.length !== 13) {
+    // console.error('Invalid consignment number length');
+    return res.status(200).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Current Status : Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  // Validate that the first two and last two characters are alphabetic
+  const firstTwoChars = consignment_number.slice(0, 2);
+  const lastTwoChars = consignment_number.slice(-2);
+  const middleChars = consignment_number.slice(2, 11);
+
+  const alphabetRegex = /^[A-Za-z]+$/;
+  const numericRegex = /^[0-9]+$/;
+
+  if (!alphabetRegex.test(firstTwoChars)) {
+    // console.error('Invalid format: First two characters must be alphabetic');
+    return res.status(200).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Current Status : Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  if (!alphabetRegex.test(lastTwoChars)) {
+    // console.error('Invalid format: Last two characters must be alphabetic');
+    return res.status(200).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Current Status : Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  // Validate that the middle characters (3rd to 11th) are numeric
+  if (!numericRegex.test(middleChars)) {
+    // console.error('Invalid format: Middle characters must be numeric');
+    return res.status(200).json({
+      data: {
+        "Consignment Number": consignment_number,
+        "Current Status": "Current Status : Invalid consignment number",
+        "HTML Content": '',
+        "PDF URL": ''
+      }
+    });
+  }
+
+  try {
+    // Use the queue to handle the request
+    queue2.push(consignment_number, async (err, trackingInfo) => {
       if (err) {
         console.error('Error in trackConsignment:', err);
         return res.status(500).json({ error: err.message });
