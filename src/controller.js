@@ -250,7 +250,7 @@ const extractTextFromCaptcha = async (captchaUrl) => {
     const client = new vision.ImageAnnotatorClient();
 
     // Fetch the captcha image from the URL
-    const response = await axios.get(captchaUrl, { responseType: 'arraybuffer' });
+    const response = await axios.get(captchaUrl, { responseType: 'arraybuffer' }, );
 
     if (response.status === 200) {
       const imageContent = response.data;
@@ -529,10 +529,19 @@ const mainWorkflow = async (consignmentNumber, headless = true) => {
     const page = await browser.newPage();
     await page.setDefaultNavigationTimeout(60000); // Set default navigation timeout to 60 seconds
 
+   try {
     await page.goto("https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx", {
-      timeout: 60000,  // Increase timeout to 60 seconds
+      timeout: 120000,  // Increase timeout to 120 seconds
       waitUntil: 'networkidle2'  // Wait until the page has no more than 2 network connections
     });
+   } catch (error) {
+    return  {
+        "Consignment Number": consignmentNumber,
+        "Current Status": "Current Status :Initiated", // Default status for errors
+        "HTML Content": '',
+        "PDF URL": ''
+      };
+   }
 
     // Input consignment number
     await page.waitForSelector('#ctl00_PlaceHolderMain_ucNewLegacyControl_txtOrignlPgTranNo', { timeout: 20000 });
