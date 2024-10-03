@@ -490,7 +490,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     // Check if the consignment number is invalid
     let errorData = {
       "Consignment Number": consignmentNumber,
-      "Current Status": "Current Status : Initiated", // Default status for errors
+      "Current Status": "Current Status :Initiated", // Default status for errors
       "HTML Content": '',
       "PDF URL": ''
     };
