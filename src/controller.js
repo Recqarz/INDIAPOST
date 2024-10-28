@@ -489,6 +489,7 @@ const retrieveTrackingInfo = async (page, consignmentNumber) => {
     console.error('Error retrieving tracking info:', error.message);
     // Check if the consignment number is invalid
     let errorData = {
+      "status":"203",
       "Consignment Number": consignmentNumber,
       "Current Status": "Current Status :Initiated", // Default status for errors
       "HTML Content": '',
@@ -536,6 +537,7 @@ const mainWorkflow = async (consignmentNumber, headless = true) => {
     });
    } catch (error) {
     return  {
+        "status":"203",
         "Consignment Number": consignmentNumber,
         "Current Status": "Current Status :Initiated", // Default status for errors
         "HTML Content": '',
