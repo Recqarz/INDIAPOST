@@ -536,6 +536,7 @@ const mainWorkflow = async (consignmentNumber, headless = true) => {
       waitUntil: 'networkidle2'  // Wait until the page has no more than 2 network connections
     });
    } catch (error) {
+    await browser.close();
     return  {
         "status":"203",
         "Consignment Number": consignmentNumber,
